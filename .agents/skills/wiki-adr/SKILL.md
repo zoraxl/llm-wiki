@@ -24,7 +24,7 @@ Use this skill to create or update architecture decision records.
    - related pages
 5. Update `wiki/decisions/index.md`.
 6. Link back from affected wiki pages.
-7. Append `wiki/log.md`.
+7. Add a new dated entry in `wiki/log/` (e.g. `YYYY-MM-DD-<slug>.md`). Enforce the rolling window of 5 by deleting the oldest if needed.
 
 ## Rules
 

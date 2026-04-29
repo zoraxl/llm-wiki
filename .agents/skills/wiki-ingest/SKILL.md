@@ -27,7 +27,7 @@ Use this skill to add durable knowledge to the wiki.
 6. If a new authoritative source is introduced, update `sources/index.md`.
 7. Add unresolved items to `wiki/open-questions.md`.
 8. Add important assertions needing review to `wiki/claims.md`.
-9. Append a short entry to `wiki/log.md`.
+9. Add a short dated entry as a new file in `wiki/log/` (e.g. `YYYY-MM-DD-<slug>.md`). If more than 5 dated files exist, delete the oldest (rolling window of 5; see `wiki/log/README.md`).
 
 ## Rules
 

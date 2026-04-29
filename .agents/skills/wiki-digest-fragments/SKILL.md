@@ -20,7 +20,7 @@ Use this skill to process `inbox/` without forcing every rough idea into final d
    - suggest an ADR
 4. Preserve original wording when it carries important product, domain, or engineering intuition.
 5. Update cross-links.
-6. Append `wiki/log.md`.
+6. Add a new dated entry in `wiki/log/` (e.g. `YYYY-MM-DD-<slug>.md`). Enforce the rolling window of 5 by deleting the oldest if needed.
 
 ## Rules
 

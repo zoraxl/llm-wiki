@@ -14,6 +14,9 @@ Agents should use these skills when the user's request matches the skill descrip
 | `wiki-lint` | Auditing wiki health, stale pages, missing links, open questions, and source-needed claims. |
 | `wiki-adr` | Recording durable architecture, infrastructure, dependency, repo-boundary, or operations decisions. |
 | `wiki-runbook` | Documenting operational procedures, debugging playbooks, deployment checks, or incident recovery steps. |
+| `brainstorm` | Exploring a problem or idea before committing to a plan. Surfaces goals, constraints, options, and open questions. |
+| `planning` | Turning an implementation intent (often a `brainstorm` output) into feature-level Jira tickets, with an explicit approval gate before creating them. |
+| `review-pr` | Generating a complete PR package (title + description with change breakdown) and applying it to GitHub via `gh` CLI. |
 
 ## General Guidance
 
@@ -23,7 +26,7 @@ Agents should use these skills when the user's request matches the skill descrip
 - Prefer links and concise summaries over copying source docs wholesale.
 - Track uncertainty in `wiki/open-questions.md`.
 - Track unsupported but important assertions in `wiki/claims.md`.
-- Append meaningful maintenance to `wiki/log.md`.
+- Add meaningful maintenance as a new dated file in `wiki/log/` (rolling window of 5; see `wiki/log/README.md`).
 - Update `wiki/index.md` when adding a new page.
 - Update `sources/index.md` when introducing a new authoritative source.
 

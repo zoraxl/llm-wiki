@@ -22,7 +22,7 @@ Use this skill to turn operational knowledge into repeatable procedures.
    - related pages
 4. If the runbook comes from a failure, update `wiki/engineering/incidents.md`.
 5. If the procedure depends on unknown environment details, add an open question.
-6. Append `wiki/log.md`.
+6. Add a new dated entry in `wiki/log/` (e.g. `YYYY-MM-DD-<slug>.md`). Enforce the rolling window of 5 by deleting the oldest if needed.
 
 ## Rules
 
