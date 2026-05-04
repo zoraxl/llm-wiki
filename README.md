@@ -1,4 +1,4 @@
-# Team-HQ
+# Team-Brain
 
 A reusable, LLM-friendly internal wiki template for teams that need a durable cross-repo knowledge store.
 
