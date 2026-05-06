@@ -1,6 +1,6 @@
 ---
 name: wiki-runbook
-description: Use when documenting operational procedures, debugging playbooks, recovery steps, deployment checks, incidents, on-call procedures, or cross-repo infrastructure workflows in the wiki.
+description: Use when documenting operational procedures, debugging playbooks, recovery steps, deployment checks, incidents, on-call procedures, or cross-repo infrastructure workflows in the team wiki.
 ---
 
 # Wiki Runbook
@@ -21,8 +21,8 @@ Use this skill to turn operational knowledge into repeatable procedures.
    - prevention
    - related pages
 4. If the runbook comes from a failure, update `wiki/engineering/incidents.md`.
-5. If the procedure depends on unknown environment details, add an open question.
-6. Add a new dated entry in `wiki/log/` (e.g. `YYYY-MM-DD-<slug>.md`). Enforce the rolling window of 5 by deleting the oldest if needed.
+5. If the procedure depends on unknown environment details, add an open question to `inbox/open-questions.md`.
+6. Append `wiki/logs/index.md`.
 
 ## Rules
 

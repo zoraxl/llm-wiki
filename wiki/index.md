@@ -6,13 +6,11 @@ Last reviewed: YYYY-MM-DD
 ## Start Here
 
 - [Concept](../CONCEPT.md)
-- [Sources index](../sources/index.md)
+- [Repos manifest](../repos.yaml)
 - [Agent skills](../.agents/README.md)
-- [Maintenance log](log.md)
-- [Fragments](fragments.md)
-- [Open questions](open-questions.md)
-- [Claims](claims.md)
-- [Threads](threads.md)
+- [Maintenance log](logs/index.md)
+
+The wiki contains only **decided and implemented** knowledge. Pre-implementation material — fragments, open questions, claims, threads, brainstorm dumps — lives in [`inbox/`](../inbox/).
 
 ## Product
 

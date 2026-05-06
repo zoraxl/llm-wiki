@@ -1,0 +1,61 @@
+schema_version: 1
+last_reviewed: YYYY-MM-DD
+
+# Single source of truth for all team repos.
+# Skills read this file to resolve sibling repo paths, ownership, and source→wiki mappings.
+#
+# Replace the placeholder repos below with your team's actual repos. Each entry should declare:
+#   - name:        kebab-case identifier
+#   - github:      <org>/<repo>
+#   - local_path:  relative path from this wiki repo to the sibling repo on disk
+#                  (typically `../<repo>` if cloned side-by-side)
+#   - role:        implementation | wiki | infra | docs
+#   - owns:        bullet list of components this repo is authoritative for
+#   - sources:     list of {path, feeds[, glob, note]} mapping source files
+#                  to the wiki pages they synthesize into.
+#
+# `repos.yaml` replaces the older prose `sources/index.md` as the canonical mapping.
+# `sources/index.md` may still exist as a human-readable narrative companion.
+
+repos:
+  - name: repo-a
+    github: <org>/repo-a
+    local_path: ../repo-a
+    role: implementation
+    owns:
+      - <component the repo is authoritative for>
+      - <another component>
+    sources:
+      - path: docs/architecture.md
+        feeds:
+          - wiki/system/architecture.md
+          - wiki/system/repo-map.md
+      - path: docs/deploys.md
+        feeds:
+          - wiki/engineering/deploys.md
+          - wiki/engineering/runbooks.md
+
+  - name: repo-b
+    github: <org>/repo-b
+    local_path: ../repo-b
+    role: implementation
+    owns:
+      - <component the repo is authoritative for>
+    sources:
+      - path: docs/integration.md
+        feeds:
+          - wiki/system/data-flow.md
+          - wiki/engineering/dependencies.md
+
+  - name: team-wiki
+    github: <org>/team-wiki
+    local_path: .
+    role: wiki
+    owns:
+      - cross-repo synthesis
+      - product concept
+      - ADRs (wiki/decisions/)
+      - inbox (fragments, threads, claims, open questions, brainstorm dumps)
+      - engineering runbooks that cross repo boundaries
+    skills_home: true
+    sources: []

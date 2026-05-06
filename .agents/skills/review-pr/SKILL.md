@@ -1,279 +1,275 @@
 ---
 name: review-pr
-description: Generate a complete PR package — a GitHub PR title and description (including change breakdown) — and apply it directly to GitHub. Always produces everything together. Works with a PR number or the current branch's committed changes vs its base. Use when the user asks to review a PR, write a PR, summarize a PR, or prepare a PR for submission.
+description: Run pre-PR validation (lint/format/typecheck/UI), detect linked issues, generate the PR package (title, description, change breakdown, score), and apply it to GitHub. Works with a PR number or the current branch's committed changes vs its base. Invokable from any repo. Use when the user says "/review-pr", "review my pr", "write a pr", "summarize a pr", "score my pr", "prepare a pr for submission".
+version: 3.0.0
+allowed-tools: ["Bash"]
+triggers:
+  - "review.{0,10}(my.{0,5})?(pr|pull.?request|changes|diff)"
+  - "score.{0,10}(my.{0,5})?(pr|pull.?request|changes|diff)"
+  - "rate.{0,10}(my.{0,5})?(pr|pull.?request|changes|diff)"
+  - "analyse.{0,10}(my.{0,5})?(pr|pull.?request|changes|diff)"
+  - "analyze.{0,10}(my.{0,5})?(pr|pull.?request|changes|diff)"
+  - "grade.{0,10}(my.{0,5})?(pr|pull.?request|changes|diff)"
 ---
 
 # Review PR
 
-Generate a complete PR package: title and description — then automatically apply it to GitHub via `gh` CLI.
+Validate, package, and apply a PR. Owns lint / format / typecheck / UI checks. Does **not** detect ADR drift — ADRs are created or updated post-merge by `/wiki-sync`. Does **not** check code against the plan — that is `/evaluate`'s responsibility (run before this skill).
 
-## Workflow
+Workflow position:
 
-### Step 1 — Determine the diff source
+```
+/brainstorm → /planning → implement → /evaluate → /review-pr → merge → /wiki-sync
+```
 
-Use one of these approaches depending on what the user provides:
+Invokable from any repo. The skill resolves repo paths via `repos.yaml` at the wiki repo root when needed.
+
+---
+
+## Step 1 — Determine the diff source
 
 **Option A — PR number/URL provided:**
 
-    gh pr view <number> --json title,body,baseRefName,headRefName,files
-    gh pr diff <number>
+```bash
+gh pr view <number> --json title,body,baseRefName,headRefName,files,labels,state,closingIssuesReferences
+gh pr diff <number>
+```
 
 **Option B — No PR number (use current branch):**
 
-Detect the default branch, get the current branch, and diff the committed changes:
-
-```sh
+```bash
 BASE=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's|refs/remotes/origin/||')
 git branch --show-current
 git log --oneline origin/$BASE..HEAD
 git diff origin/$BASE...HEAD
 ```
 
-If detection fails, ask the user for the base branch.
+Read every file in the diff before continuing.
 
-### Step 2 — Analyze the diff
+---
+
+## Step 2 — Run validation
+
+Validation runs against the **current working tree** before the PR is created or updated. If validation fails, stop — fix and re-run.
+
+**Skip Step 2** when the user only wants a read-only summary of an existing PR (Option A, no apply step). Note in the output that local validation was not run.
+
+### Choosing commands
+
+Run the implementation repo's standard validation. Always check the repo's `CLAUDE.md`, `AGENTS.md`, or `README.md` first for the canonical validation commands.
+
+| Repo type | Default commands |
+|-----------|------------------|
+| TypeScript / Node monorepo | `pnpm lint`, `pnpm format`, `pnpm typecheck` (or `turbo typecheck`) |
+| Python service | Run the local `Makefile` targets (`make lint`, `make typecheck`, `make test`) |
+| Docker / Compose service | Repo-root validation per the local README; typically a compose config check |
+| Wiki / markdown-only (this repo) | No automated validation; skip Step 2 |
+
+The table is a fallback, not the source of truth.
+
+### UI changes
+
+For UI changes, start the dev server and verify the feature in a browser. Test the golden path and key edge cases. Watch for regressions in nearby features. Type checking and tests verify code correctness, not feature correctness — if you can't test the UI, say so explicitly in the PR description rather than claiming success.
+
+### On failure
+
+If any check fails:
+
+- **Stop.** Do not proceed to Step 3.
+- Summarize the failure for the user (which command, which file/line, what error).
+- Recommend running `/evaluate` if the failure looks like a planning gap, or fixing directly otherwise.
+- Re-run `/review-pr` after the user fixes.
+
+---
+
+## Step 3 — Detect linked issue
+
+Auto-detect first. Look for an issue number reference in this order:
+
+1. **Head branch name** — patterns like `fix-123-...`, `issue-123-...`, `123-foo-bar`.
+2. **Commit messages** on the branch — search for `#NNN` references.
+3. **Existing PR body** — look for `Closes #NNN`, `Fixes #NNN`, `Resolves #NNN`.
+
+If a closing reference is found, carry it through into the new PR body unchanged.
+
+If nothing is detected:
+
+```bash
+gh issue list --state open --limit 10 --json number,title,labels
+```
+
+Show the list and ask:
+
+> **Does this PR resolve any of these issues?** Reply with the issue number, a comma-separated list of numbers, or `none`.
+
+For each chosen number, add `Closes #N` to the Summary block of the PR description. If `none`, skip — no closing reference is added.
+
+GitHub auto-closes the linked issue when the PR merges; do not comment on or label the issue from this skill.
+
+---
+
+## Step 4 — Analyze the diff
 
 Read every file in the diff. Understand:
 
-- **What** changed (new features, bug fixes, refactors, config changes, etc.)
-- **Why** it changed (the motivation or problem being solved)
-- **How** it was implemented (key technical details)
+- **What** changed (new features, refactors, bug fixes, wiki updates, etc.)
+- **Why** it changed (motivation, gap being addressed)
+- **How** it was done (structure, key patterns, cross-links)
 
-Group changes into logical items for the change breakdown table.
-
-### Step 3 — Generate the output
-
-Produce exactly **two blocks** for transparency/audit (they should still be copy-pasteable if needed):
-
-1. **PR Title** — in a single-line code block
-2. **PR Description** — in a single fenced code block (use triple backticks, ideally with a `markdown` language tag) containing BOTH the PR Details and the Change Breakdown, separated by a `---` divider
-
-### Step 4 — Apply to GitHub
-
-After generating the content, ask the user: "The PR content is ready. Would you like me to apply it directly to GitHub?" Only proceed once the user confirms.
-
-**If a PR already exists (PR number is known):**
-
-Update the existing PR's title and body using the REST API (avoids `gh pr edit` which fails due to GitHub's Projects Classic deprecation). Note: `{owner}` and `{repo}` are auto-resolved by `gh api` from the current repo context — do not replace them manually:
-
-```sh
-gh api repos/{owner}/{repo}/pulls/<number> --method PATCH \
-  --field title="<title>" \
-  --field body="$(cat <<'PRBODY'
-<description>
-PRBODY
-)" --jq '.html_url'
-```
-
-**If no PR exists yet (working from the current branch):**
-
-First push the branch, then create a new PR. **By default, create the PR as ready for review** (no `--draft` flag) so reviewers are notified immediately. If the user explicitly asks for a draft PR, add the `--draft` flag.
-
-```sh
-git push -u origin HEAD
-gh pr create --title "<title>" --body "$(cat <<'PRBODY'
-<description>
-PRBODY
-)"
-```
-
-If the user requested a draft, add `--draft` to the command above and mention how to mark it ready later (`gh pr ready <number>` or the "Ready for review" button on GitHub).
-
-IMPORTANT:
-- Ensure the title and body are properly shell-escaped when constructing the commands above (e.g. escape quotes, backticks, and special characters).
-- Do NOT append any branding footers (e.g. "Made with Cursor") to the PR title or body. The PR must contain ONLY the content generated by this skill.
-
-Always confirm the action was successful and provide the PR URL.
-
-### Step 5 — Offer Jira integration
-
-After the PR is successfully applied, ask the user:
-
-> "Would you also like to **update an existing Jira ticket** or **create a new Jira ticket** for this PR in CEA-Sparkle?"
-
-If the user says yes, follow the **create-jira-ticket** skill workflow (load and read `.claude/skills/create-jira-ticket/SKILL.md`). Use the same PR number, title, body, and metadata already gathered in this skill — no need to re-fetch.
+Group changes into logical items for the change breakdown table in Step 5.
 
 ---
 
-## PR Title Rules
+## Step 5 — Generate the PR package
 
-- **Maximum 72 characters** (GitHub allows 256 but 72 keeps it readable in lists and notifications)
-- Use imperative mood (e.g. "Add …", "Fix …", "Refactor …", "Update …")
-- Be specific — mention the component, feature, or area affected
-- Do NOT use a period at the end
-- Do NOT use generic titles like "Update code" or "Fix bug"
+Produce exactly **two copy-pasteable blocks**:
 
----
+1. **PR Title** — single-line code block.
+2. **PR Description** — fenced code block with the full PR body.
 
-## PR Description Template
+### PR Title Rules
 
-The description block must contain ALL of the following in order. Use this exact template:
+- Maximum 72 characters.
+- Imperative mood ("Add …", "Fix …", "Update …", "Clarify …").
+- Specific — mention the feature, area, or component.
+- No trailing period.
+- No generic titles like "Update docs" or "Fix stuff".
+
+### PR Description Template
 
 ```
 ## PR Details
 
 ### Summary
 
-**Summary:** <!-- 1-2 sentences — what does this PR do at a high level? -->
-
+**Summary:** <!-- 1-2 sentences high level -->
 {summary}
 
-**Motivation:** <!-- Why is this change needed? What problem, gap, or opportunity does it address? -->
+{closes_reference_if_any}
 
+**Motivation:** <!-- Why is this change needed? -->
 {motivation}
 
-**Approach:** <!-- How was it implemented? Key design decisions and trade-offs. -->
-
+**Approach:** <!-- How was it implemented? Key decisions and trade-offs. -->
 {approach}
 
-**Impact:** <!-- What's the effect on users, the system, or the codebase? -->
-
+**Impact:** <!-- Effect on users, decisions, or cross-repo understanding -->
 {impact}
 
-**Changes:** <!-- Bullet list of the key changes made in this PR -->
-
+**Changes:** <!-- Bullet list of key changes -->
 {changes_as_bullet_list}
 
 ## Testing
-
-<!-- Describe how these changes were tested. -->
 
 {testing_description}
 
 ### Test Evidence
 
-<!-- Describe the testing results. -->
-
-{test_evidence}
+{validation_output_summary_from_step_2}
 
 **Checklist:**
 
-- [ ] Code follows project style guidelines
 - [ ] Self-review completed
-- [ ] Pre-commit Hooks passed
+- [ ] Validation commands pass (lint, format, typecheck, UI as applicable)
+- [ ] Linked issue verified (or none required)
 
 ---
 
 ### Change Breakdown
 
-| # | Category | Description | Files Changed | Effort |
-|---|----------|-------------|---------------|--------|
+| # | Category | Description | Files Changed | Score |
+|---|----------|-------------|---------------|-------|
 | 1 | category | what changed and why | list of files | n/10 |
 
 **Verdict:** {one-sentence scope assessment}
 
-**Total Effort: {sum of effort scores}**
+**Total Score: {sum}/{max}**
 
 **Summary:**
 1. **What** — {2-3 sentences on what this PR does}
-2. **Why** — {the motivation or problem being solved}
+2. **Why** — {motivation}
 3. **How** — {key implementation details worth noting}
 ```
 
-### Description Section Guidelines
-
-**Summary:** 1–2 sentences giving the high-level overview of the PR.
-
-**Motivation:** Why is this change needed? For bug fixes: describe the broken behavior and its cause. For new features: describe the gap or user need. For refactors: describe the maintenance or scalability concern. This section replaces the need for separate "Problem" and "Root Cause" fields.
-
-**Approach:** The implementation strategy and key design decisions. Mention important trade-offs or alternatives considered if relevant.
-
-**Impact:** What changes for users, downstream systems, or the codebase? Examples: "Users can now query active campaigns", "Reduces P95 latency by 40%", "No user-facing changes — internal refactor only".
-
-**Changes:** Bullet list of concrete changes. Group related items. Mention new, modified, and deleted files.
-
-**Testing:** Describe the testing approach. If unknown from the diff, write `<!-- TODO: Fill in testing details -->`.
-
-**Test Evidence:** Summarize results. If unknown from the diff, write `<!-- TODO: Fill in test evidence -->`.
+If `/evaluate` ran in the same session and produced an acceptance-criteria checklist, paste a condensed version of it into the **Test Evidence** block above the validation output.
 
 ### Change Breakdown Categories
 
-Use whichever apply:
+#### For implementation repos
 
-- **New Feature** — new functionality or capability
-- **Enhancement** — improvement to an existing feature
-- **Bug Fix** — corrects incorrect behavior
-- **Refactor** — restructures code without changing behavior
-- **Styling/UI** — visual or layout changes
-- **Config/Build** — dependency, build, CI/CD, or config changes
-- **Docs** — documentation updates
-- **Tests** — new or updated tests
-- **Cleanup** — removal of dead code, unused imports, etc.
+| Category | Signals |
+|----------|---------|
+| **Feature** | New user-visible or system-visible capability |
+| **Fix** | Bug fix or regression repair |
+| **Refactor** | Internal restructure without behavior change |
+| **Test** | New or updated tests |
+| **Config / Infra** | Build, deploy, environment, dependency changes |
+| **Docs** | Documentation, comments, README |
+
+#### For wiki repos
+
+| Category | Signals |
+|----------|---------|
+| **New concept / decision** | New ADR, product idea in stable form, CONCEPT.md change |
+| **Cross-links & structure** | wiki/index.md updates, hub pages, navigation between pages |
+| **Source alignment** | repos.yaml changes; tracing claims; authority map |
+| **Lint / maintenance** | Stale metadata, index coverage, small consistency fixes, log append |
+| **Housekeeping** | Typos, formatting-only, trivial link fixes |
 
 ### Effort Scoring Guide
 
-| Score | Meaning                                                                |
-| ----- | ---------------------------------------------------------------------- |
-| 1-2   | Trivial — typo fix, single-line change, config tweak                   |
-| 3-4   | Low — small bug fix, minor component update, doc update                |
-| 5-6   | Moderate — new component, meaningful logic change, multi-file refactor |
-| 7-8   | High — new feature with multiple components, architectural change      |
-| 9-10  | Major — large-scale migration, new system, cross-cutting rewrite       |
+| Score | Meaning |
+|-------|---------|
+| 1–2 | Trivial / housekeeping — no meaningful change |
+| 3–4 | Small clarification or local fix |
+| 5–6 | Meaningful addition or restructure |
+| 7–8 | Significant new durable knowledge or feature |
+| 9–10 | Foundational — binding decision, full architecture change |
+
+`max` = number of categories × 10. List categories in descending order of score.
 
 ---
 
-## Full Example Output
+## Step 6 — Apply to GitHub
 
-**PR Title:**
+Immediately apply. Do **not** ask for confirmation.
 
+**If a PR already exists (PR number is known):**
+
+```bash
+BODY_FILE=$(mktemp)
+trap 'rm -f "$BODY_FILE"' EXIT
+cat > "$BODY_FILE" <<'PRBODY'
+<description>
+PRBODY
+gh api repos/{owner}/{repo}/pulls/<number> --method PATCH \
+  --field title="<title>" \
+  --field body=@"$BODY_FILE" \
+  --jq '.html_url'
 ```
-Add retry logic to document upload service
+
+**If no PR exists yet (working from current branch):**
+
+```bash
+git push -u origin HEAD
+BODY_FILE=$(mktemp)
+trap 'rm -f "$BODY_FILE"' EXIT
+cat > "$BODY_FILE" <<'PRBODY'
+<description>
+PRBODY
+gh pr create --title "<title>" --body-file "$BODY_FILE"
 ```
 
-**PR Description:**
-
-```markdown
-## PR Details
-
-### Summary
-
-**Summary:** Add exponential backoff retry logic to the document upload service to handle transient network failures during cloud storage uploads.
-
-**Motivation:** A single failed upload attempt would immediately surface an error to the user, even for transient network issues that would resolve on their own. The upload service had no retry mechanism — every HTTP call was fire-once, so any momentary connectivity blip caused a hard failure.
-
-**Approach:** Wrap the upload call in an exponential backoff retry loop (up to 3 attempts with 1s, 2s, 4s delays) before propagating the error. Uses the existing `httpx` client with a custom retry decorator.
-
-**Impact:** Transient network failures during uploads are now handled transparently — users no longer see immediate timeout errors for momentary connectivity issues.
-
-**Changes:**
-
-- Added `retry()` decorator in `sparkle/utils/retry.py`
-- Applied retry decorator to `UploadService.upload_document()` in `sparkle/services/document_store/upload_service.py`
-- Added unit tests for retry behavior in `tests/services/document_store/test_upload_service.py`
-- Updated `README.md` with retry configuration options
-
-## Testing
-
-Manually tested by simulating network failures during upload. Verified retries fire correctly with expected delays. Existing unit tests updated to cover retry scenarios.
-
-### Test Evidence
-
-All existing and new unit tests pass. Manual testing confirmed retries work as expected with 1s, 2s, and 4s delays.
-
-**Checklist:**
-
-- [ ] Code follows project style guidelines
-- [ ] Self-review completed
-- [ ] Pre-commit Hooks passed
+After applying, check for auto-appended footers (e.g., "Made with Cursor"). If present, re-apply with the clean body.
 
 ---
 
-### Change Breakdown
+## Common Mistakes
 
-| #   | Category     | Description                                                                  | Files Changed                   | Effort |
-| --- | ------------ | ---------------------------------------------------------------------------- | ------------------------------- | ------ |
-| 1   | New Feature  | Added retry decorator with exponential backoff for transient upload failures | `retry.py`, `upload_service.py` | 5/10   |
-| 2   | Config/Build | Added `UPLOAD_CHUNK_SIZE_MB` setting                                         | `settings.py`                   | 1/10   |
-| 3   | Tests        | Added unit tests for retry behavior at boundary conditions                   | `test_upload_service.py`        | 3/10   |
-| 4   | Docs         | Updated README with retry configuration options                              | `README.md`                     | 1/10   |
-
-**Verdict:** Moderate feature addition — introduces a focused retry subsystem with good test coverage.
-
-**Total Effort: 10**
-
-**Summary:**
-
-1. **What** — This PR adds an exponential backoff retry decorator and applies it to the document upload service, so transient network failures no longer cause immediate user-facing errors.
-2. **Why** — Users were seeing timeout errors on uploads due to momentary connectivity issues that would self-resolve.
-3. **How** — A generic `retry()` decorator wraps the upload call with configurable max attempts and backoff delays. The threshold is set via a new config option.
-```
+- **Skipping validation** — Step 2 is a hard gate. Do not generate the PR package if validation fails.
+- **Scoring by length** — a long reformat that doesn't change behavior stays 1–2.
+- **Merging unrelated edits** — keep change breakdown categories distinct.
+- **Including uncommitted changes** — only committed work is in scope.
+- **Forgetting the three-dot diff** — use `origin/<base>...HEAD` for branch comparisons.
+- **Inventing implementation detail** — flag uncertainty instead of speculating.
+- **Re-running ADR drift checks** — that work moved to `/wiki-sync` post-merge. If you find yourself reading `wiki/decisions/` from this skill, stop.

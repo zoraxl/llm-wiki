@@ -77,18 +77,21 @@ Only fill this in if one approach is clearly the best fit given the constraints.
 
 After producing the brainstorm document, ask the user:
 
-> Save this brainstorm and register it in the ideas backlog?
+> Save this brainstorm to the intake dump?
 >
-> 1. Save to `inbox/dump/YYYY-MM-DD-brainstorm-<slug>.md` and add a short entry to `wiki/ideas.md` (status: proposed) linking back to the dump.
-> 2. Save to `inbox/dump/` only (no ideas-registry entry).
-> 3. Skip saving — keep the brainstorm in chat only.
+> 1. Save to `inbox/dump/YYYY-MM-DD-brainstorm-<slug>.md`.
+> 2. Skip saving — keep the brainstorm in chat only.
 
-If the user picks (1) or (2):
+If the user picks (1):
 - Write the full brainstorm document to `inbox/dump/YYYY-MM-DD-brainstorm-<slug>.md` using today's date and a short kebab-case slug derived from the topic.
-- For (1) only: prepend a new entry under `## Active Ideas` in [wiki/ideas.md](../../wiki/ideas.md) using that file's entry template, with `Status: proposed` and a `Related:` link to the dump file. Keep the entry short — the dump holds the detail.
+- Do not promote the idea into stable wiki pages unless a human explicitly asks for that curation step.
 
 Then end with:
 
-> Ready for `/planning` when you've reviewed the open questions. If you'd like team discussion first, the entry in `wiki/ideas.md` is the place for that.
+> Ready for `/planning` when you've reviewed the open questions. If you'd like team discussion first, use the saved dump as the discussion anchor.
 
 Do not invoke `/planning` automatically. The user decides when to move on.
+
+## Repository Map
+
+Read `repos.yaml` at the repo root to resolve sibling repo paths. Do not use hardcoded local paths.
