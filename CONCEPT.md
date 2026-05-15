@@ -51,7 +51,7 @@ The wiki is not the source of truth for every implementation detail. It is the s
 - Promote decisions into ADRs when they begin constraining implementation.
 - Keep pages cross-linked and source-backed where possible.
 - Record meaningful maintenance in [`wiki/logs/index.md`](wiki/logs/index.md).
-- Use the reusable skills in [`.agents/skills/`](.agents/skills/) for consistent brainstorm, planning, evaluation, review, sync, query, lint, ADR, and runbook workflows.
+- Use the reusable skills in [`.agents/skills/`](.agents/skills/) for consistent brainstorm, planning, evaluation, review, sync, query, lint, ADR, runbook, and chat-derived workflow learning.
 
 ## Inbox and Fragment Handling
 
@@ -69,6 +69,7 @@ Inbox material is human-curated. Skim it periodically and promote ideas through 
 - The idea is worth thinking through → `/brainstorm` produces a structured exploration doc into `inbox/dump/`.
 - The brainstorm solidifies into something to build → `/planning` writes phase specs into `plans/<feature-slug>/` (status `wip` until reviewed and flipped to `ready to ship`).
 - Implementation ships → `/wiki-sync <pr>` syncs the merged PR into the wiki, creates or flips the ADR, and cleans up the plan files.
+- Repeated chat feedback reveals a durable agent/team preference → `/workflow-from-chats` routes it to a skill update, wiki/runbook note, planning guidance, inbox follow-up, or no change.
 
 Keep original wording when phrasing carries product intuition.
 
@@ -114,6 +115,7 @@ The package includes agent-readable skills in [.agents/skills](.agents/skills):
 - `wiki-lint` — health checks
 - `wiki-adr` — ad-hoc architecture decisions captured outside `/planning`
 - `wiki-runbook` — operations
+- `workflow-from-chats` — mine repeated chat feedback into durable workflow guidance
 
 When adapting this template, keep skill descriptions generic enough to work across teams, but update examples or section names if your wiki structure changes.
 
