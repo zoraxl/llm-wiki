@@ -78,6 +78,7 @@ Each skill owns one verb. See [.agents/README.md](.agents/README.md) for the ful
 | `wiki-lint` | `/wiki-lint` | Periodic health audit. |
 | `wiki-adr` | `/wiki-adr` | Record an ad-hoc architecture decision outside the `/planning → /wiki-sync` flow. |
 | `wiki-runbook` | `/wiki-runbook` | Document cross-repo operational procedures. |
+| `workflow-from-chats` | `/workflow-from-chats <excerpts-or-target>` | Mine repeated chat feedback into durable workflow guidance. Routes findings to skill updates, wiki/runbook notes, planning guidance, inbox follow-ups, or no change. |
 
 ## Copy-Paste Setup Prompt
 
@@ -103,6 +104,7 @@ Then register or follow the reusable skills in .agents/skills:
 - wiki-lint
 - wiki-adr
 - wiki-runbook
+- workflow-from-chats
 
 When I want to explore an idea, use brainstorm.
 When I want to turn a brainstorm or intent into phase specs, use planning.
@@ -113,6 +115,7 @@ When I have a question about existing knowledge, use wiki-query.
 When I want a wiki health pass, use wiki-lint.
 When a durable architecture/infrastructure decision needs recording outside /planning, use wiki-adr.
 When I want to document an operational procedure, use wiki-runbook.
+When repeated chat feedback should become durable workflow guidance, use workflow-from-chats.
 
 Preserve source authority: repo-local docs and linked sources remain authoritative; this wiki synthesizes rather than copies them.
 Track uncertainty in inbox/open-questions.md.
@@ -145,6 +148,8 @@ Repo-local docs remain authoritative for implementation details. See [repos.yaml
 When a rough idea surfaces while you're working — something worth thinking through but not yet ready to build — explore it with `/brainstorm`. The output saves to `inbox/dump/` on request and is the bridge from "vague idea" to "ready for `/planning`."
 
 For raw, unstructured capture (an observation, half-formed thought, chat takeaway), `inbox/fragments.md` and `inbox/chats.md` are still fine. Skim them periodically and either `/brainstorm` the promising ones or delete dead ones.
+
+When repeated chat feedback points to a stable team or agent preference, use `/workflow-from-chats` to decide whether it belongs in a skill, wiki/runbook page, planning guidance, inbox follow-up, or nowhere.
 
 ### 3. Design and planning
 

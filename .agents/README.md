@@ -30,6 +30,12 @@ Agents should use these skills when the user's request matches the skill descrip
 | `wiki-adr` | Creates or amends an ADR for an ad-hoc decision that didn't go through the normal `/planning → /wiki-sync` flow. In the standard flow, `/wiki-sync` creates the ADR post-merge. |
 | `wiki-runbook` | Documents cross-repo operational procedures, debugging playbooks, recovery steps, or incidents into `wiki/engineering/`. |
 
+### Workflow Learning
+
+| Skill | Use When |
+|---|---|
+| `workflow-from-chats` | Mining recent chats or pasted excerpts for durable workflow preferences. Routes each finding to the right artifact: skill update, wiki/runbook note, planning/spec guidance, inbox follow-up, or no change. |
+
 ### Typical Workflow Sequence
 
 ```
@@ -38,7 +44,7 @@ Agents should use these skills when the user's request matches the skill descrip
 
 Each skill owns one verb: **/evaluate** verifies (code ↔ plan), **/review-pr** validates and packages (lint/typecheck/UI + PR title/body/score), **/wiki-sync** ingests (ADR + wiki pages + plan cleanup).
 
-For ongoing inbox hygiene, skim `inbox/fragments.md` periodically and `/brainstorm` promising ideas (or delete dead ones). For periodic health, run `/wiki-lint`.
+For ongoing inbox hygiene, skim `inbox/fragments.md` periodically and `/brainstorm` promising ideas (or delete dead ones). Use `/workflow-from-chats` when repeated chat feedback should become durable workflow guidance. For periodic health, run `/wiki-lint`.
 
 ## General Guidance
 
